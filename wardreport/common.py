@@ -124,6 +124,43 @@ def calling_splitter(calling_finder: calling_finder_maker, members: List[dict]):
     return partition(lambda i: calling_finder(i), members)
 
 
+def recommend_finder_maker(recommend_status: List[dict]):
+    """
+    Creates a function which will return the endowment record of a member by their legacyCmisId.
+    """
+    recommends = {i['id']: i for i in recommend_status}
+
+    def recommend_finder(member: dict) -> Optional[dict]:
+        legacy_member_id = member['legacyCmisId']
+        return recommends.get(legacy_member_id)
+
+    return recommend_finder
+
+
+def endowed_splitter(recommend_finder: recommend_finder_maker, members: List[dict]):
+    return partition(lambda i: (r := recommend_finder(i)) and r['endowmentDate'], members)
+
+
+STATUSES = (
+    'ACTIVE',
+    'CANCELED',
+    'EXPIRED_LESS_THAN_1_MONTH',
+    'EXPIRED_LESS_THAN_3_MONTHS',
+    'EXPIRED_OVER_3_MONTHS',
+    'EXPIRING_NEXT_MONTH',
+    'EXPIRING_THIS_MONTH',
+    'LOST_OR_STOLEN',
+)
+
+
+def recommend_status_grouper(recommend_status) -> Dict[str, List[dict]]:
+    groups = {i: [] for i in STATUSES}
+    for status in recommend_status:
+        if recommend_status := status.get('recommendStatus'):
+            groups[recommend_status].append(status)
+    return groups
+
+
 PRIESTHOODS = ('HIGH_PRIEST', 'ELDER', 'PRIEST', 'TEACHER', 'DEACON', 'UNORDAINED')
 
 

@@ -22,3 +22,9 @@ def callings():
 @pytest.fixture
 def calling_finder(callings):
     return common.calling_finder_maker(callings)
+
+
+@pytest.fixture
+def recommend_status():
+    from test import examples
+    return examples.recommend_status

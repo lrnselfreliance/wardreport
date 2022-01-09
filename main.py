@@ -3,11 +3,13 @@ import asyncio
 import dataclasses
 import json
 import os
+from datetime import datetime
 
 from dotenv import load_dotenv
 
 from wardreport.common import household_grouper, member_splitter, male_splitter, calling_finder_maker, calling_splitter, \
-    multi_partition, priesthood_grouper, percent_str, singles_by_age
+    multi_partition, priesthood_grouper, percent_str, singles_by_age, recommend_finder_maker, endowed_splitter, \
+    recommend_status_grouper
 
 load_dotenv()
 
@@ -71,46 +73,78 @@ class MemberReport:
     single_31: int = 0
     single_46: int = 0
 
+    endowed: int = 0
+    not_endowed: int = 0
+
+    recommend_active: int = 0
+    recommend_expiring_next_month: int = 0
+    recommend_expiring_this_month: int = 0
+
+    recommend_canceled: int = 0
+    recommend_expired_less_than_1_month: int = 0
+    recommend_expired_less_than_3_months: int = 0
+    recommend_expired_over_3_months: int = 0
+    recommend_lost_or_stolen: int = 0
+
     def print_report(self):
-        print(f'''Total Members: {self.members}
+        current_recommend = self.recommend_active + self.recommend_expiring_this_month + \
+                            self.recommend_expiring_next_month
+        expired_recommend = self.recommend_expired_over_3_months + self.recommend_expired_less_than_1_month + \
+                            self.recommend_expired_less_than_3_months + self.recommend_canceled
+        print(f'''Report Date: {datetime.now().date()}
+
+Total Members: {self.members}
 Non-Members: {self.non_members}
 
 Brethren: {self.brethren}
 Sisters: {self.sisters}
+Total Adults: {self.adults}
 
 Young Men: {self.young_men}
 Young Women: {self.young_women}
 
 Primary
-=======================================
+===================================
 Total: {self.primary}
-\t0-2: {self.age_0_to_2}    3-7: {self.age_3_to_7}    8+: {self.age_8_plus}
-
+    0-2: {self.age_0_to_2}    3-7: {self.age_3_to_7}    8+: {self.age_8_plus}
+    {percent_str(self.age_0_to_2, self.primary)}        {percent_str(self.age_3_to_7, self.primary)}         {percent_str(self.age_8_plus, self.primary)}
 
 Callings
-=======================================
+===================================
 Brethren with callings: {self.brethren_with_callings} ({percent_str(self.brethren_with_callings, self.brethren)})
 Sisters with callings: {self.sisters_with_callings} ({percent_str(self.sisters_with_callings, self.sisters)})
 
 
 Priesthood
-=======================================
+===================================
 Brethren:
-\tMelchizedek: {self.brethren_melchizedek}
-\tAaronic: {self.brethren_aaronic}
-\tUnordained: {self.brethren_unordained}
+\tMelchizedek: {self.brethren_melchizedek} ({percent_str(self.brethren_melchizedek, self.brethren)})
+\tAaronic: {self.brethren_aaronic} ({percent_str(self.brethren_aaronic, self.brethren)})
+\tUnordained: {self.brethren_unordained} ({percent_str(self.brethren_unordained, self.brethren)})
 
 Young Men:
-\tAaronic: {self.young_men_aaronic}
-\tUnordained: {self.young_men_unordained}
+\tAaronic: {self.young_men_aaronic} ({percent_str(self.young_men_aaronic, self.young_men)})
+\tUnordained: {self.young_men_unordained} ({percent_str(self.young_men_unordained, self.young_men)})
 
 
 Single Adults
-=======================================
+===================================
 Young Singles: {self.single_18}
 Mid Singles: {self.single_31} 
 46+ Singles: {self.single_46} 
 Total: {self.single_18 + self.single_31 + self.single_46}
+
+
+Temple
+===================================
+Adults:
+\tEndowed: {self.endowed} ({percent_str(self.endowed, self.adults)})
+\tNot Endowed: {self.not_endowed} ({percent_str(self.not_endowed, self.adults)})
+\tCurrent Recommend: {current_recommend} ({percent_str(current_recommend, self.endowed)})
+\tExpired Recommend: {expired_recommend} ({percent_str(expired_recommend, self.endowed)})
+\tRecommend Expiring this month: {self.recommend_expiring_this_month}
+\tRecommend Expiring next month: {self.recommend_expiring_next_month}
+\tRecommend Lost or Stolen: {self.recommend_lost_or_stolen}
 ''')
 
 
@@ -118,6 +152,8 @@ def summarize_members(data: dict) -> MemberReport:
     all_members = data['member_list']
 
     calling_finder = calling_finder_maker(data['callings'])
+    recommend_status = data['recommend_status']
+    recommend_finder = recommend_finder_maker(recommend_status)
 
     members, non_members = member_splitter(all_members)
     households = household_grouper(all_members)
@@ -153,6 +189,9 @@ def summarize_members(data: dict) -> MemberReport:
 
     single_18, single_31, single_46 = singles_by_age(members)
 
+    endowed, not_endowed = endowed_splitter(recommend_finder, adults)
+    recommend_groups = recommend_status_grouper(recommend_status)
+
     report = MemberReport()
     report.members = len(members)
     report.non_members = len(non_members)
@@ -177,6 +216,10 @@ def summarize_members(data: dict) -> MemberReport:
     report.single_18 = len(single_18)
     report.single_31 = len(single_31)
     report.single_46 = len(single_46)
+    report.endowed = len(endowed)
+    report.not_endowed = len(not_endowed)
+    for name, group in recommend_groups.items():
+        setattr(report, f'recommend_{name.lower()}', len(group))
 
     return report
 

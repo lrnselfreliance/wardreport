@@ -161,3 +161,30 @@ def test_single(members):
     assert len(single_18) == 2
     assert len(single_31) == 1
     assert len(single_46) == 9
+
+
+def test_recommend(members, recommend_status):
+    recommend_finder = common.recommend_finder_maker(recommend_status)
+    endowed, not_endowed = common.endowed_splitter(recommend_finder, members)
+    assert len(endowed) == 29
+    assert len(not_endowed) == 15
+    assert len(endowed) + len(not_endowed) == len(members)
+
+    recommend_groups = common.recommend_status_grouper(recommend_status)
+    active = recommend_groups['ACTIVE']
+    canceled = recommend_groups['CANCELED']
+    expired_less_than_1_month = recommend_groups['EXPIRED_LESS_THAN_1_MONTH']
+    expired_less_than_3_month = recommend_groups['EXPIRED_LESS_THAN_3_MONTHS']
+    expired_over_3_months = recommend_groups['EXPIRED_OVER_3_MONTHS']
+    expiring_next_month = recommend_groups['EXPIRING_NEXT_MONTH']
+    expiring_this_month = recommend_groups['EXPIRING_THIS_MONTH']
+    lost_or_stolen = recommend_groups['LOST_OR_STOLEN']
+
+    assert len(active) == 3
+    assert len(canceled) == 3
+    assert len(expired_less_than_1_month) == 6
+    assert len(expired_less_than_3_month) == 4
+    assert len(expired_over_3_months) == 2
+    assert len(expiring_next_month) == 7
+    assert len(expiring_this_month) == 1
+    assert len(lost_or_stolen) == 3

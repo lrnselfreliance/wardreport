@@ -1,4 +1,5 @@
 import io
+import logging
 import re
 import smtplib
 import ssl
@@ -12,6 +13,8 @@ from typing import List, Dict, Tuple, Optional, Iterable
 
 TEST_YEAR = None
 REAL_YEAR = datetime.now().year
+
+logger = logging.getLogger('wardreport')
 
 
 def get_current_year():
@@ -206,9 +209,7 @@ class MemberReport:
         self.process_data()
 
     def process_data(self):
-        """
-        Calculate and summarize all member information.
-        """
+        """Calculate and summarize all member information."""
         members, non_members = member_splitter(self.member_list)
 
         predicates = [
@@ -284,9 +285,7 @@ class MemberReport:
         return self.data[item]
 
     def print_report(self, *, file=sys.stdout):
-        """
-        Print a text report of my data to the provided file (default: stdout).
-        """
+        """Print a text report of my data to the provided file (default: stdout)."""
         print(f'''Report Date: {datetime.now().date()}
 
 Total Members: {self.members}
@@ -348,9 +347,7 @@ EMAIL_REGEX = re.compile(r'.*@.*\..*')
 
 
 def check_emails(emails: Iterable[str]):
-    """
-    Do some sanity-checking for the list of emails.
-    """
+    """Do some sanity-checking for the list of emails."""
     invalid_emails = []
     for email in emails:
         if not EMAIL_REGEX.match(email):
@@ -362,9 +359,8 @@ def check_emails(emails: Iterable[str]):
 
 def email_report(tos: Iterable[str], report: MemberReport, *, from_: str,
                  smtp_server: str, smtp_server_port: int, smtp_username: str, smtp_password: str):
-    """
-    Send an email
-    """
+    """Send an email"""
+    logging.info(f'Sending email from {from_} to {tos}')
     msg = EmailMessage()
 
     with io.StringIO() as out:
@@ -388,3 +384,9 @@ def email_report(tos: Iterable[str], report: MemberReport, *, from_: str,
         conn.ehlo()
         conn.login(smtp_username, smtp_password)
         conn.send_message(msg)
+
+
+def set_log_level(level: int):
+    """Set """
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)

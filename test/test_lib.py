@@ -2,7 +2,7 @@ from itertools import chain
 
 import pytest
 
-from wardreport import common
+from wardreport import lib
 
 
 def test_year():
@@ -10,48 +10,48 @@ def test_year():
     Test that the year can be overwritten during testing.  If this test fails, let me know where you
     got that time machine.
     """
-    assert common.get_current_year() != 1900
-    common.set_test_year(1900)
-    assert common.get_current_year() == 1900
+    assert lib.get_current_year() != 1900
+    lib.set_test_year(1900)
+    assert lib.get_current_year() == 1900
 
 
 def test_partition():
-    assert common.partition(lambda i: not i % 2, range(10)) == ([0, 2, 4, 6, 8], [1, 3, 5, 7, 9])
+    assert lib.partition(lambda i: not i % 2, range(10)) == ([0, 2, 4, 6, 8], [1, 3, 5, 7, 9])
 
 
 def test_member_splitter(members):
-    members, non_members = common.member_splitter(members)
+    members, non_members = lib.member_splitter(members)
     assert len(members) == 25
     assert len(non_members) == 19
 
 
 def test_adult_splitter(members):
-    adults, non_adults = common.adult_splitter(members)
+    adults, non_adults = lib.adult_splitter(members)
     assert all(i['age'] >= 18 for i in adults)
     assert all(i['age'] < 18 for i in non_adults)
 
 
 def test_male_splitter(members):
-    males, females = common.male_splitter(members)
+    males, females = lib.male_splitter(members)
     assert all([i['sex'] == 'M' for i in males])
     assert all([i['sex'] == 'F' for i in females])
 
 
 def test_household_grouper(members):
-    households = common.household_grouper(members)
+    households = lib.household_grouper(members)
     assert len(households) == 25
 
 
 def test_multi_partition(members):
     # Partition children by age.
-    _, children = common.adult_splitter(members)
+    _, children = lib.adult_splitter(members)
 
     predicates = [
         lambda i: i['age'] <= 2,
         lambda i: 2 < i['age'] <= 7,
         lambda i: i['age'] >= 8,
     ]
-    two_or_less, three_to_seven, over_eight = common.multi_partition(predicates, children)
+    two_or_less, three_to_seven, over_eight = lib.multi_partition(predicates, children)
     assert all(i['age'] <= 2 for i in two_or_less)
     assert max(i['age'] for i in two_or_less) == 2
     assert min(i['age'] for i in two_or_less) == 0
@@ -75,10 +75,10 @@ def test_calling_finder(members, callings):
     """
     `calling_finder` will return the calling of the member, or None if they have no calling.
     """
-    by_id = common.callings_by_member_id(callings)
+    by_id = lib.callings_by_member_id(callings)
     assert len(by_id) == 4
 
-    calling_finder = common.calling_finder_maker(callings)
+    calling_finder = lib.calling_finder_maker(callings)
     expected = [
         8453335106,
         9156228629,
@@ -92,7 +92,7 @@ def test_calling_splitter(members, calling_finder):
     """
     Members can be split by their calling status.
     """
-    called, not_called = common.calling_splitter(calling_finder, members)
+    called, not_called = lib.calling_splitter(calling_finder, members)
     assert len(called) == 4
     assert len(not_called) == 40
     assert len(called) + len(not_called) == len(members)
@@ -102,8 +102,8 @@ def test_priesthood_grouper(members):
     """
     Members can be grouped by their priesthood.
     """
-    males, _ = common.male_splitter(members)
-    priesthood_groups = common.priesthood_grouper(males)
+    males, _ = lib.male_splitter(members)
+    priesthood_groups = lib.priesthood_grouper(males)
     priesthood_expected = [
         ('HIGH_PRIEST', ['5b35df49-afd5-4835-a692-c368cbd9afe9', '272c3d61-af50-40d3-8dfd-053191daca4e']),
         ('ELDER', ['fde732f0-20cb-44d0-b0a7-733f50fd3534', 'b37174d2-f04f-4a3b-a55f-3cdec8a973e6']),
@@ -122,8 +122,8 @@ def test_priesthood_grouper(members):
         assert [i['uuid'] for i in priesthood_groups[priesthood]] == expected
 
     # Priesthood grouper can be used on boys as well.
-    _, boys = common.adult_splitter(males)
-    priesthood_groups = common.priesthood_grouper(boys)
+    _, boys = lib.adult_splitter(males)
+    priesthood_groups = lib.priesthood_grouper(boys)
     priesthood_expected = [
         ('HIGH_PRIEST', []),
         ('ELDER', []),
@@ -147,30 +147,30 @@ def test_priesthood_grouper(members):
 ]
                          )
 def test_percent_str(top, bottom, expected):
-    assert common.percent_str(top, bottom) == expected
+    assert lib.percent_str(top, bottom) == expected
 
 
 def test_single(members):
-    singles, not_singles = common.single_splitter(members)
+    singles, not_singles = lib.single_splitter(members)
     singles = list(singles)
     assert all(i['isSingleAdult'] or i['isYoungSingleAdult'] for i in singles)
     assert all(not i['isSingleAdult'] and not i['isYoungSingleAdult'] for i in not_singles)
     assert len(singles) == 12
 
-    single_18, single_31, single_46 = common.singles_by_age(members)
+    single_18, single_31, single_46 = lib.singles_by_age(members)
     assert len(single_18) == 2
     assert len(single_31) == 1
     assert len(single_46) == 9
 
 
 def test_recommend(members, recommend_status):
-    recommend_finder = common.recommend_finder_maker(recommend_status)
-    endowed, not_endowed = common.endowed_splitter(recommend_finder, members)
+    recommend_finder = lib.recommend_finder_maker(recommend_status)
+    endowed, not_endowed = lib.endowed_splitter(recommend_finder, members)
     assert len(endowed) == 29
     assert len(not_endowed) == 15
     assert len(endowed) + len(not_endowed) == len(members)
 
-    recommend_groups = common.recommend_status_grouper(recommend_status)
+    recommend_groups = lib.recommend_status_grouper(recommend_status)
     active = recommend_groups['ACTIVE']
     canceled = recommend_groups['CANCELED']
     expired_less_than_1_month = recommend_groups['EXPIRED_LESS_THAN_1_MONTH']

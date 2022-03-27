@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 
-from wardreport import common
+from wardreport import lib
 
 example_members_file = pathlib.Path('./test/example_members.json')
 
@@ -21,7 +21,7 @@ def callings():
 
 @pytest.fixture
 def calling_finder(callings):
-    return common.calling_finder_maker(callings)
+    return lib.calling_finder_maker(callings)
 
 
 @pytest.fixture

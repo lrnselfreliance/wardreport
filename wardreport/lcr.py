@@ -4,6 +4,8 @@ This file is from https://github.com/philipbl/LCR-API/
 """
 
 import logging
+import sys
+import time
 
 import requests
 from selenium import webdriver
@@ -18,7 +20,7 @@ LCR_DOMAIN = f"lcr.{HOST}"
 CHROME_OPTIONS = webdriver.chrome.options.Options()
 CHROME_OPTIONS.add_argument("--headless")
 CHROME_OPTIONS.add_argument("--no-sandbox")
-TIMEOUT = 10
+TIMEOUT = 20
 
 if _LOGGER.getEffectiveLevel() <= logging.DEBUG:
     import http.client as http_client
@@ -67,11 +69,17 @@ class API:
         password_input.submit()
 
         # Wait until the page is loaded
-        WebDriverWait(self.driver, TIMEOUT).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, "input#memberLookupMain")
-            )
-        )
+        maximum_tries = 20
+        tries = 0
+        while True:
+            if tries > maximum_tries:
+                print('Could not find element.  Page did not load :(')
+                sys.exit(1)
+            time.sleep(1)
+            # Check for the presence of a specific element.
+            if 'viewBox="0 0 24 24"' in str(self.driver.page_source):
+                break
+            tries += 1
 
         # Get authState parameter.
         cookies = self.driver.get_cookies()
